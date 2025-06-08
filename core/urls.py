@@ -1,19 +1,6 @@
 from django.urls import path
-from core.views import (
-    UserRegisterAPIView,
-    UserLoginAPIView,
-    UserLogoutAPIView,
-    UserListView,
-    UserCreateView,
-    UserDetailView,
-    UserUpdateView,
-    UserDeleteView,
-    StoreListView,
-    StoreCreateView,
-    StoreDetailView,
-    StoreUpdateView,
-    StoreDeleteView,
-)
+from core.views.user import *
+from core.views.store import *
 
 app_name = 'core'
 
