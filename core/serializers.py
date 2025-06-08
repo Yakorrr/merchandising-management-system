@@ -1,5 +1,6 @@
+from django.contrib.auth import authenticate
 from rest_framework import serializers
-from django.contrib.auth import authenticate  # Used for login validation
+
 from .models import User
 
 
@@ -49,29 +50,48 @@ class UserRegisterSerializer(serializers.ModelSerializer):
 class UserLoginSerializer(serializers.Serializer):
     """
     Serializer for user login.
-    Includes fields for username and password for authentication.
+    Allows authentication using either username or email, along with password.
     """
-    username = serializers.CharField(required=True)
+    username = serializers.CharField(required=False, allow_blank=True)  # Make username optional
+    email = serializers.EmailField(required=False, allow_blank=True)  # Make email optional
     password = serializers.CharField(write_only=True, required=True)
 
     def validate(self, data):
         """
-        Validate user credentials using Django's authenticate function.
+        Validate user credentials using Django's authenticate function based on username or email.
+        Ensures that at least one of username or email is provided.
         :param data: The validated data from the request.
         :return: The validated data, including the authenticated user.
-        :raises serializers.ValidationError: If authentication fails.
+        :raises serializers.ValidationError: If authentication fails or insufficient credentials.
         """
         username = data.get('username')
+        email = data.get('email')
         password = data.get('password')
 
-        if username and password:
-            user = authenticate(request=self.context.get('request'), username=username, password=password)
-            if not user:
-                raise serializers.ValidationError("Invalid credentials. Please try again.")
-        else:
-            raise serializers.ValidationError("Must include 'username' and 'password'.")
+        if not username and not email:
+            raise serializers.ValidationError("Must include either 'username' or 'email'.")
+        if not password:
+            raise serializers.ValidationError("Password is required.")
 
-        data['user'] = user  # Attach the authenticated user to the validated data
+        user = None
+        if username:
+            # Try authenticating directly with username
+            user = authenticate(request=self.context.get('request'), username=username, password=password)
+        elif email:
+            # Find user by email first, then attempt authentication with their username
+            try:
+                # Case-insensitive email lookup
+                user_by_email = User.objects.get(email__iexact=email)
+                user = authenticate(request=self.context.get('request'), username=user_by_email.username,
+                                    password=password)
+            except User.DoesNotExist:
+                # User not found by email, authentication will fail
+                pass
+
+        if not user:
+            raise serializers.ValidationError("Invalid credentials. Please try again.")
+
+        data['user'] = user
         return data
 
 
@@ -86,3 +106,58 @@ class UserSerializer(serializers.ModelSerializer):
         fields = ['id', 'username', 'email', 'role', 'first_name', 'last_name', 'date_joined']
         read_only_fields = ['id', 'username', 'email', 'role',
                             'date_joined']  # These fields are read-only when displaying user data
+
+
+class UserCreateSerializer(serializers.ModelSerializer):
+    """
+    Serializer for creating new user accounts by managers.
+    Requires password for new user creation.
+    """
+    password = serializers.CharField(write_only=True, required=True, style={'input_type': 'password'})
+
+    class Meta:
+        model = User
+        fields = ['username', 'email', 'password', 'role', 'first_name', 'last_name', 'date_joined']
+
+    def create(self, validated_data):
+        """
+        Create a new User instance by a manager with hashed password.
+        :param validated_data: Dictionary of validated data for user creation.
+        :return: Created User instance.
+        """
+        password = validated_data.pop('password')
+        user = User(**validated_data)
+        user.set_password(password)  # Hash the password
+        user.save()
+        return user
+
+
+class UserUpdateSerializer(serializers.ModelSerializer):
+    """
+    Serializer for updating existing user accounts by managers.
+    Password update is optional and handled separately.
+    """
+    password = serializers.CharField(write_only=True, required=False, allow_blank=True,
+                                     style={'input_type': 'password'})
+
+    class Meta:
+        model = User
+        fields = ['username', 'email', 'role', 'first_name', 'last_name', 'password', 'date_joined']
+
+    def update(self, instance, validated_data):
+        """
+        Update an existing User instance.
+        Hashes password if a new one is provided.
+        :param instance: The User instance to update.
+        :param validated_data: Dictionary of validated data for user update.
+        :return: Updated User instance.
+        """
+        password = validated_data.pop('password', None)
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+
+        if password:
+            instance.set_password(password)
+
+        instance.save()
+        return instance

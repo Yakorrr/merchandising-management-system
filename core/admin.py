@@ -1,9 +1,7 @@
-# core/admin.py
-
 from django.contrib import admin
 from .models import User, Store, Product, Order, OrderItem, DailyPlan, DailyPlanStore, Log, StoreMetrics
 
-# Register your models here.
+# Register models
 admin.site.register(User)
 admin.site.register(Store)
 admin.site.register(Product)
