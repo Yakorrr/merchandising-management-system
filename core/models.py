@@ -91,7 +91,7 @@ class Order(models.Model):
     # Foreign key to the User model (merchandiser).
     # If a merchandiser is deleted, their placed orders are also deleted (CASCADE).
     merchandiser = models.ForeignKey(User, on_delete=models.CASCADE, related_name='placed_orders')
-    order_date = models.DateField()
+    order_date = models.DateTimeField(auto_now_add=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='created')
     # total_amount can be calculated from OrderItems, but storing it for convenience or pre-calculation.
     total_amount = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True,
@@ -155,7 +155,7 @@ class DailyPlan(models.Model):
     """
     # Foreign key to the User model (merchandiser) who owns this plan.
     merchandiser = models.ForeignKey(User, on_delete=models.CASCADE, related_name='daily_plans')
-    plan_date = models.DateField()
+    plan_date = models.DateTimeField(auto_now_add=True)
     notes = models.TextField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -183,7 +183,7 @@ class DailyPlanStore(models.Model):
     # Foreign key to the Store to be visited.
     store = models.ForeignKey(Store, on_delete=models.CASCADE)
     visit_order = models.PositiveIntegerField(validators=[MinValueValidator(1)])
-    visited_at = models.DateTimeField(blank=True, null=True)
+    visited_at = models.DateTimeField(blank=True, null=True, auto_now_add=True)
     completed = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

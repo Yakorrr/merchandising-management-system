@@ -1,8 +1,6 @@
 from django.urls import path
-from core.views.user import *
-from core.views.store import *
-from core.views.product import *
-from core.views.order import *
+
+from core.views import *
 
 app_name = 'core'
 
@@ -45,4 +43,14 @@ urlpatterns = [
     path('orders/<int:pk>/update/', OrderUpdateView.as_view(), name='order-update'),
     # DELETE for delete (managers only)
     path('orders/<int:pk>/delete/', OrderDeleteView.as_view(), name='order-delete'),
+
+    # Daily Plan Management Endpoints
+    path('daily_plans/', DailyPlanListView.as_view(), name='daily-plan-list'),  # GET list (filtered by role)
+    path('daily_plans/create/', DailyPlanCreateView.as_view(), name='daily-plan-create'),  # POST create (managers only)
+    # GET detail (filtered by role)
+    path('daily_plans/<int:pk>/', DailyPlanDetailView.as_view(), name='daily-plan-detail'),
+    # PATCH update (managers only)
+    path('daily_plans/<int:pk>/update/', DailyPlanUpdateView.as_view(), name='daily-plan-update'),
+    # DELETE (managers only)
+    path('daily_plans/<int:pk>/delete/', DailyPlanDeleteView.as_view(), name='daily-plan-delete'),
 ]
