@@ -53,4 +53,13 @@ urlpatterns = [
     path('daily_plans/<int:pk>/update/', DailyPlanUpdateView.as_view(), name='daily-plan-update'),
     # DELETE (managers only)
     path('daily_plans/<int:pk>/delete/', DailyPlanDeleteView.as_view(), name='daily-plan-delete'),
+
+    # Metrics Endpoints
+    # GET pre-calculated metrics (managers only)
+    path('metrics/pre_calculated/', StoreMetricsListView.as_view(), name='pre-calculated-metrics-list'),
+    # GET pre-calculated metrics detail (managers only)
+    path('metrics/pre_calculated/<int:pk>/', StoreMetricsDetailView.as_view(), name='pre-calculated-metrics-detail'),
+    # GET calculated metrics (managers only)
+    path('metrics/calculate/', CalculateStoreMetricsAPIView.as_view(), name='calculate-metrics'),
+    path('metrics/save/', SaveStoreMetricsAPIView.as_view(), name='save-metrics'),
 ]
