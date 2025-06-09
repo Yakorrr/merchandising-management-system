@@ -73,20 +73,20 @@ class UserLoginSerializer(serializers.Serializer):
         if not password:
             raise serializers.ValidationError("Password is required.")
 
-        user = None
+        user_to_authenticate = None
         if username:
-            # Try authenticating directly with username
-            user = authenticate(request=self.context.get('request'), username=username, password=password)
+            # Try to find user by username (case-sensitive as username is unique)
+            user_to_authenticate = User.objects.filter(username=username).first()
         elif email:
-            # Find user by email first, then attempt authentication with their username
-            try:
-                # Case-insensitive email lookup
-                user_by_email = User.objects.get(email__iexact=email)
-                user = authenticate(request=self.context.get('request'), username=user_by_email.username,
-                                    password=password)
-            except User.DoesNotExist:
-                # User not found by email, authentication will fail
-                pass
+            # Try to find user by email (case-insensitive)
+            user_to_authenticate = User.objects.filter(email__iexact=email).first()
+
+        # If a user object was found by username or email, attempt to authenticate it
+        user = None
+        if user_to_authenticate:
+            # Now use Django's authenticate function with the found user's actual username
+            user = authenticate(request=self.context.get('request'), username=user_to_authenticate.username,
+                                password=password)
 
         if not user:
             raise serializers.ValidationError("Invalid credentials. Please try again.")
