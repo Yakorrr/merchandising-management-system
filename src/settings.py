@@ -149,3 +149,6 @@ STATIC_URL = 'static/'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 AUTH_USER_MODEL = 'core.User'
+
+OSRM_SERVICE_URL = 'http://router.project-osrm.org/route/v1/driving/'  # For point-to-point routing
+OSRM_OPTIMIZE_URL = 'http://router.project-osrm.org/trip/v1/driving/'  # For Traveling Salesperson Problem (TSP) optimization

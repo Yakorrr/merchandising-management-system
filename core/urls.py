@@ -54,6 +54,11 @@ urlpatterns = [
     # DELETE (managers only)
     path('daily_plans/<int:pk>/delete/', DailyPlanDeleteView.as_view(), name='daily-plan-delete'),
 
+    # Daily Plan Store Management Endpoints
+    # GET stores for a specific daily plan
+    path('daily_plans/<int:daily_plan_id>/stores/', DailyPlanStoresListView.as_view(),
+         name='daily-plan-stores-list'),
+
     # Metrics Endpoints
     # GET pre-calculated metrics (managers only)
     path('metrics/pre_calculated/', StoreMetricsListView.as_view(), name='pre-calculated-metrics-list'),
@@ -62,4 +67,10 @@ urlpatterns = [
     # GET calculated metrics (managers only)
     path('metrics/calculate/', CalculateStoreMetricsAPIView.as_view(), name='calculate-metrics'),
     path('metrics/save/', SaveStoreMetricsAPIView.as_view(), name='save-metrics'),
+
+    # Map Data Endpoints
+    path('map/stores/', MapDataListView.as_view(), name='map-data-list'),  # GET list of stores for map
+
+    # Route Calculation Endpoints
+    path('route/calculate/', CalculateRouteAPIView.as_view(), name='calculate-route'),  # POST to calculate route
 ]
