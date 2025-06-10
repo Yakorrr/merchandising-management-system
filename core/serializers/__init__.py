@@ -6,3 +6,4 @@ from .daily_plan import *
 from .metrics import *
 from .map import *
 from .route import *
+from .log import *

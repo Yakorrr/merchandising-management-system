@@ -73,4 +73,8 @@ urlpatterns = [
 
     # Route Calculation Endpoints
     path('route/calculate/', CalculateRouteAPIView.as_view(), name='calculate-route'),  # POST to calculate route
+
+    # Log Management Endpoints
+    path('logs/', LogListView.as_view(), name='log-list'),  # GET list of all logs
+    path('logs/<int:pk>/', LogDetailView.as_view(), name='log-detail'),  # GET detail of a single log
 ]
