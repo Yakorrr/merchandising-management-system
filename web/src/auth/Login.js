@@ -6,22 +6,20 @@ const Login = () => {
     const [usernameOrEmail, setUsernameOrEmail] = useState('');
     const [password, setPassword] = useState('');
     const [message, setMessage] = useState('');
-    const {login, user} = useAuth();
+    const {login, isAuthenticated} = useAuth();
     const navigate = useNavigate();
 
-    // Redirect if already logged in
     useEffect(() => {
-        if (user) {
+        if (isAuthenticated) { // Redirect if already logged in
             navigate('/dashboard');
         }
-    }, [user, navigate]);
+    }, [isAuthenticated, navigate]);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         setMessage('');
         try {
             await login(usernameOrEmail, password);
-            // AuthContext's useEffect will handle redirecting if user state is updated
         } catch (error) {
             console.error('Login error:', error.response?.data || error);
             setMessage(error.response?.data?.detail || 'Login failed. Please check your credentials.');

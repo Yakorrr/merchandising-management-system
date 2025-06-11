@@ -6,7 +6,6 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from core.models import Log
-from core.permissions import IsManager
 from core.serializers.route import *
 
 
@@ -16,7 +15,7 @@ class CalculateRouteAPIView(APIView):
     Integrates with an external routing service (e.g., OSRM).
     Accessible only by authenticated managers.
     """
-    permission_classes = [IsAuthenticated, IsManager]
+    permission_classes = [IsAuthenticated]
 
     def post(self, request, *args, **kwargs):
         """

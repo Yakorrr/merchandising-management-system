@@ -4,29 +4,38 @@ import Login from './auth/Login';
 import Register from './auth/Register';
 
 import Dashboard from './pages/Dashboard';
+import MapView from './pages/MapView';
+import Welcome from './pages/Welcome';
+import StoreList from './pages/StoreList';
+import StoreDetail from './pages/StoreDetail';
+
 import {useAuth} from './context/AuthContext';
 
-// PrivateRoute component for protected routes (as discussed before)
+// PrivateRoute component
 const PrivateRoute = ({children, allowedRoles}) => {
-    const {user} = useAuth(); // User data from context
-    if (!user) {
-        return <Navigate to="/login" replace/>;
+    const {isAuthenticated, user, isAuthReady} = useAuth();
+    // Show loading while authentication state is being determined
+    if (!isAuthReady) {
+        return <div>Initializing authentication...</div>;
     }
-    // Check if user object exists and has the nested 'role' property
-    if (allowedRoles && (!user || !allowedRoles.includes(user.role))) {
+    if (!isAuthenticated) { // If not authenticated after ready, redirect to welcome/login
+        return <Navigate to="/welcome" replace/>;
+    }
+    // Check if user object exists and has the 'role' property directly
+    if (allowedRoles && (!user || !allowedRoles.includes(user.userData.role))) { // Access role from userData
         return <Navigate to="/dashboard" replace/>;
     }
     return children;
 };
 
 function App() {
-    const {user, logout} = useAuth(); // Get tokens from context
+    const {isAuthenticated, currentUserName, currentUserRole, logout, isAuthReady} = useAuth();
     const navigate = useNavigate();
 
     const handleLogout = async () => {
         try {
-            await logout(); // Context's logout function
-            navigate('/login');
+            await logout();
+            navigate('/welcome');
         } catch (error) {
             console.error('Logout failed:', error);
             alert(error.response?.data?.detail || 'Logout failed. Please try again.');
@@ -41,13 +50,19 @@ function App() {
                 backgroundColor: '#f0f0f0',
                 borderBottom: '1px solid #ddd'
             }}>
-                <Link to="/stores" style={{marginRight: '15px'}}>See Stores</Link>
-                {user && <Link to="/map" style={{marginRight: '15px'}}>Map</Link>}
+                <Link to="/welcome" style={{marginRight: '15px'}}>Welcome</Link>
+                {isAuthenticated && (
+                    <>
+                        <Link to="/dashboard" style={{marginRight: '15px'}}>Dashboard</Link>
+                        <Link to="/map" style={{marginRight: '15px'}}>Map</Link>
+                        <Link to="/stores" style={{marginRight: '15px'}}>Stores</Link>
+                    </>
+                )}
 
                 <div style={{float: 'right'}}>
-                    {user ? (
+                    {isAuthenticated ? (
                         <span style={{marginRight: '10px'}}>
-                            Welcome, {user.first_name || user.username} ({user.role})!
+                            Welcome, {currentUserName} ({currentUserRole})!
                             <button onClick={handleLogout}
                                     style={{marginLeft: '10px', padding: '5px 10px'}}>Logout</button>
                         </span>
@@ -62,6 +77,7 @@ function App() {
 
             <div style={{padding: '20px'}}>
                 <Routes>
+                    <Route path="/welcome" element={<Welcome/>}/>
                     <Route path="/login" element={<Login/>}/>
                     <Route path="/register" element={<Register/>}/>
                     <Route path="/dashboard" element={
@@ -69,7 +85,29 @@ function App() {
                             <Dashboard/>
                         </PrivateRoute>
                     }/>
-                    <Route path="*" element={<Navigate to={user ? "/dashboard" : "/login"} replace/>}/>
+                    <Route path="/map" element={
+                        <PrivateRoute>
+                            <MapView/>
+                        </PrivateRoute>
+                    }/>
+                    <Route path="/stores" element={
+                        <PrivateRoute>
+                            <StoreList/>
+                        </PrivateRoute>
+                    }/>
+                    <Route path="/stores/:id" element={
+                        <PrivateRoute>
+                            <StoreDetail/>
+                        </PrivateRoute>
+                    }/>
+                    {/* Default route: wait until auth is ready before redirecting */}
+                    <Route path="*" element={
+                        !isAuthReady ? (
+                            <div>Initializing authentication...</div>
+                        ) : (
+                            <Navigate to={isAuthenticated ? "/dashboard" : "/welcome"} replace/>
+                        )
+                    }/>
                 </Routes>
             </div>
         </div>

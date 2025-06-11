@@ -4,54 +4,74 @@ import authService from '../services/authService';
 const AuthContext = createContext(null);
 
 export const AuthProvider = ({children}) => {
+    // User state stores the comprehensive user object { userData, accessToken, refreshToken }
     const [user, setUser] = useState(null);
-    const [tokens, setTokens] = useState(null);
+    const [isAuthReady, setIsAuthReady] = useState(false);
 
     useEffect(() => {
-        const userData = authService.getCurrentUserData();
-        const userTokens = authService.getCurrentUserTokens();
-        if (userData && userTokens) {
-            setUser(userData);
-            setTokens(userTokens);
-        }
+        const loadUserFromStorage = () => {
+            const currentUser = authService.getCurrentUser(); // Gets full user object
+            if (currentUser) {
+                setUser(currentUser);
+            }
+            setIsAuthReady(true);
+        };
+        loadUserFromStorage();
     }, []);
 
     const login = async (usernameOrEmail, password) => {
-        const responseData = await authService.login(usernameOrEmail, password); // This contains user data and tokens
-        if (responseData.user && responseData.access && responseData.refresh) {
-            setUser(responseData.user); // Store only user data
-            setTokens([responseData.access, responseData.refresh]); // Store tokens array
-        } else {
-            setUser(null);
-            setTokens(null);
-            localStorage.removeItem('user_data');
-            localStorage.removeItem('user_tokens');
-        }
+        const responseData = await authService.login(usernameOrEmail, password); // Returns full response with user and tokens
+        // authService.login already stores user in localStorage
+        const currentUser = authService.getCurrentUser();
+        setUser(currentUser);
         return responseData;
     };
 
     const logout = async () => {
-        const currentTokens = authService.getCurrentUserTokens();
-        if (currentTokens && currentTokens[1]) {
-            try {
-                await authService.logout(currentTokens[1]);
-            } catch (error) {
-                console.error('Logout failed on backend:', error);
-            }
+        try {
+            await authService.logout(); // authService.logout handles token retrieval/clearing
+        } catch (error) {
+            console.error('Logout failed on backend:', error);
+        } finally {
+            setUser(null); // Clear user state
         }
-        setUser(null);
-        setTokens(null);
-        localStorage.removeItem('user_data');
-        localStorage.removeItem('user_tokens');
     };
 
     const register = async (username, email, password, password2, role, firstName, lastName) => {
-        const response =
-            await authService.register(username, email, password, password2, role, firstName, lastName);
+        const response = await authService.register(
+            username, email, password, password2, role, firstName, lastName
+        );
         return response.data;
     };
 
-    const value = {user, tokens, login, logout, register};
+    const getAuthHeaders = () => {
+        const currentUser = authService.getCurrentUser(); // Get full user object from localStorage
+        if (currentUser && currentUser.accessToken) {
+            return { Authorization: `Bearer ${currentUser.accessToken}` };
+        }
+        return {};
+    };
+
+    // Derived states for convenience
+    const isAuthenticated = !!user;
+    const isManager = user && user.userData && user.userData.role === 'manager'; // Access role from userData
+    const currentUserName = user && user.userData ? (user.userData.first_name
+        || user.userData.username) : null;
+    const currentUserRole = user && user.userData ? user.userData.role : null;
+
+
+    const value = {
+        user, // The full user object from localStorage
+        isAuthenticated,
+        isManager,
+        currentUserName,
+        currentUserRole,
+        login,
+        logout,
+        register,
+        isAuthReady,
+        getAuthHeaders,
+    };
 
     return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };

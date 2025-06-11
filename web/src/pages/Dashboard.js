@@ -2,20 +2,22 @@ import React from 'react';
 import {useAuth} from '../context/AuthContext';
 
 const Dashboard = () => {
-    const {user} = useAuth();
+    const {user, isAuthReady, currentUserName, currentUserRole} = useAuth();
+
+    if (!isAuthReady) {
+        return <div>Initializing authentication...</div>;
+    }
+
+    if (!user) { // Should be protected by PrivateRoute, but good fallback
+        return <p>Please log in to view the dashboard.</p>;
+    }
 
     return (
         <div>
             <h2>Dashboard</h2>
-            {user ? (
-                <>
-                    <p>Welcome, {user?.first_name || user?.username}!</p>
-                    <p>Your role: {user?.role}</p>
-                    {/* Add more dashboard content here */}
-                </>
-            ) : (
-                <p>Please log in to view the dashboard.</p>
-            )}
+            <p>Welcome, {currentUserName}!</p>
+            <p>Your role: {currentUserRole}</p>
+            {/* Add more dashboard content here */}
         </div>
     );
 };

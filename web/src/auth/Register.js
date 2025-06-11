@@ -13,15 +13,14 @@ const Register = () => {
         lastName: ''
     });
     const [message, setMessage] = useState('');
-    const {register, user} = useAuth(); // Get user state from context
+    const {register, isAuthenticated} = useAuth();
     const navigate = useNavigate();
 
-    // Redirect if already logged in
     useEffect(() => {
-        if (user) {
+        if (isAuthenticated) {
             navigate('/dashboard');
         }
-    }, [user, navigate]);
+    }, [isAuthenticated, navigate]);
 
 
     const handleChange = (e) => {
@@ -47,7 +46,7 @@ const Register = () => {
                 formData.lastName
             );
             setMessage('Registration successful! Please log in.');
-            navigate('login/');
+            navigate('/login');
         } catch (error) {
             console.error('Registration error:', error.response?.data || error);
             const errorMessages = error.response?.data
@@ -71,15 +70,6 @@ const Register = () => {
                     <input type="email" id="email" name="email" value={formData.email} onChange={handleChange}
                            required/>
                 </div>
-                {/*<div>*/}
-                {/*    <label htmlFor="firstName">First Name:</label>*/}
-                {/*    <input type="text" id="firstName" name="firstName" value={formData.firstName}*/}
-                {/*           onChange={handleChange}/>*/}
-                {/*</div>*/}
-                {/*<div>*/}
-                {/*    <label htmlFor="lastName">Last Name:</label>*/}
-                {/*    <input type="text" id="lastName" name="lastName" value={formData.lastName} onChange={handleChange}/>*/}
-                {/*</div>*/}
                 <div>
                     <label htmlFor="password">Password:</label>
                     <input type="password" id="password" name="password" value={formData.password}
@@ -90,6 +80,15 @@ const Register = () => {
                     <input type="password" id="password2" name="password2" value={formData.password2}
                            onChange={handleChange} required/>
                 </div>
+                {/*<div>*/}
+                {/*    <label htmlFor="firstName">First Name:</label>*/}
+                {/*    <input type="text" id="firstName" name="firstName" value={formData.firstName}*/}
+                {/*           onChange={handleChange}/>*/}
+                {/*</div>*/}
+                {/*<div>*/}
+                {/*    <label htmlFor="lastName">Last Name:</label>*/}
+                {/*    <input type="text" id="lastName" name="lastName" value={formData.lastName} onChange={handleChange}/>*/}
+                {/*</div>*/}
                 {/*<div>*/}
                 {/*    <label htmlFor="role">Role:</label>*/}
                 {/*    <select id="role" name="role" value={formData.role} onChange={handleChange}>*/}
