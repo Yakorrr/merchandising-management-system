@@ -36,11 +36,9 @@ class UserRegisterAPIView(APIView):
             user = serializer.save()
             Log.objects.create(user=user, action='user_registered',
                                details={'username': user.username, 'role': user.role})
-            refresh = RefreshToken.for_user(user)
+
             return Response({
                 'user': UserSerializer(user).data,
-                'refresh': str(refresh),
-                'access': str(refresh.access_token),
             }, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
