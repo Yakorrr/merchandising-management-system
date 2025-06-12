@@ -8,6 +8,8 @@ import MapView from './pages/MapView';
 import Welcome from './pages/Welcome';
 import StoreList from './pages/StoreList';
 import StoreDetail from './pages/StoreDetail';
+import StoreCreate from './pages/StoreCreate';
+import StoreEdit from './pages/StoreEdit';
 
 import {useAuth} from './context/AuthContext';
 
@@ -98,6 +100,17 @@ function App() {
                     <Route path="/stores/:id" element={
                         <PrivateRoute>
                             <StoreDetail/>
+                        </PrivateRoute>
+                    }/>
+                    {/* Manager-only routes for Store Management */}
+                    <Route path="/stores/create" element={
+                        <PrivateRoute allowedRoles={['manager']}> {/* Manager-only */}
+                            <StoreCreate/>
+                        </PrivateRoute>
+                    }/>
+                    <Route path="/stores/:id/edit" element={
+                        <PrivateRoute allowedRoles={['manager']}> {/* Manager-only */}
+                            <StoreEdit/>
                         </PrivateRoute>
                     }/>
                     {/* Default route: wait until auth is ready before redirecting */}
