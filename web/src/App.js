@@ -4,12 +4,17 @@ import Login from './auth/Login';
 import Register from './auth/Register';
 
 import Dashboard from './pages/Dashboard';
-import MapView from './pages/MapView';
+import MapView from './pages/map/MapView';
 import Welcome from './pages/Welcome';
-import StoreList from './pages/StoreList';
-import StoreDetail from './pages/StoreDetail';
-import StoreCreate from './pages/StoreCreate';
-import StoreEdit from './pages/StoreEdit';
+import StoreList from './pages/store/StoreList';
+import StoreDetail from './pages/store/StoreDetail';
+import StoreCreate from './pages/store/StoreCreate';
+import StoreEdit from './pages/store/StoreEdit';
+
+import UserManagementList from './pages/user/UserManagementList';
+import UserManagementCreate from './pages/user/UserManagementCreate';
+import UserManagementEdit from './pages/user/UserManagementEdit';
+import UserManagementDetail from './pages/user/UserManagementDetail';
 
 import {useAuth} from './context/AuthContext';
 
@@ -56,8 +61,13 @@ function App() {
                 {isAuthenticated && (
                     <>
                         <Link to="/dashboard" style={{marginRight: '15px'}}>Dashboard</Link>
-                        <Link to="/map" style={{marginRight: '15px'}}>Map</Link>
+                        {currentUserRole === 'manager' && (
+                            <>
+                                <Link to="/users" style={{marginRight: '15px', color: 'purple'}}>Users</Link>
+                            </>
+                        )}
                         <Link to="/stores" style={{marginRight: '15px'}}>Stores</Link>
+                        <Link to="/map" style={{marginRight: '15px'}}>Map</Link>
                     </>
                 )}
 
@@ -87,11 +97,29 @@ function App() {
                             <Dashboard/>
                         </PrivateRoute>
                     }/>
-                    <Route path="/map" element={
-                        <PrivateRoute>
-                            <MapView/>
+
+                    {/* Manager-only routes for User Management */}
+                    <Route path="/users" element={
+                        <PrivateRoute allowedRoles={['manager']}>
+                            <UserManagementList/>
                         </PrivateRoute>
                     }/>
+                    <Route path="/users/create" element={
+                        <PrivateRoute allowedRoles={['manager']}>
+                            <UserManagementCreate/>
+                        </PrivateRoute>
+                    }/>
+                    <Route path="/users/:id" element={
+                        <PrivateRoute allowedRoles={['manager']}>
+                            <UserManagementDetail/>
+                        </PrivateRoute>
+                    }/>
+                    <Route path="/users/:id/edit" element={
+                        <PrivateRoute allowedRoles={['manager']}>
+                            <UserManagementEdit/>
+                        </PrivateRoute>
+                    }/>
+                    {/* Routes for Store Management */}
                     <Route path="/stores" element={
                         <PrivateRoute>
                             <StoreList/>
@@ -104,13 +132,19 @@ function App() {
                     }/>
                     {/* Manager-only routes for Store Management */}
                     <Route path="/stores/create" element={
-                        <PrivateRoute allowedRoles={['manager']}> {/* Manager-only */}
+                        <PrivateRoute allowedRoles={['manager']}>
                             <StoreCreate/>
                         </PrivateRoute>
                     }/>
                     <Route path="/stores/:id/edit" element={
-                        <PrivateRoute allowedRoles={['manager']}> {/* Manager-only */}
+                        <PrivateRoute allowedRoles={['manager']}>
                             <StoreEdit/>
+                        </PrivateRoute>
+                    }/>
+
+                    <Route path="/map" element={
+                        <PrivateRoute>
+                            <MapView/>
                         </PrivateRoute>
                     }/>
                     {/* Default route: wait until auth is ready before redirecting */}
