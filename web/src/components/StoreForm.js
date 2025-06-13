@@ -1,9 +1,7 @@
-import React, {useState, useEffect} from 'react';
+import React, {useState} from 'react';
 
 const StoreForm = ({initialData = {}, onSubmit, isEditMode = false, submitButtonText}) => {
     const [formData, setFormData] = useState(() => {
-        // For edit mode, populate with initialData.
-        // For create mode, it will be an empty object, so defaults are used.
         return {
             name: initialData.name || '',
             address: initialData.address || '',
@@ -52,12 +50,12 @@ const StoreForm = ({initialData = {}, onSubmit, isEditMode = false, submitButton
             </div>
             <div>
                 <label htmlFor="latitude">Latitude:</label>
-                <input type="number" step="any" id="latitude" name="latitude" value={formData.latitude}
+                <input type="number" step="0.1" id="latitude" name="latitude" value={formData.latitude}
                        onChange={handleChange}/>
             </div>
             <div>
                 <label htmlFor="longitude">Longitude:</label>
-                <input type="number" step="any" id="longitude" name="longitude" value={formData.longitude}
+                <input type="number" step="0.1" id="longitude" name="longitude" value={formData.longitude}
                        onChange={handleChange}/>
             </div>
             <div>

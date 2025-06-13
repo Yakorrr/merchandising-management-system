@@ -68,48 +68,48 @@ const StoreList = () => {
     }
 
     return (<div>
-            <h2>Our Stores</h2>
-            {currentUserRole === 'manager' && (<Link to="/stores/create" style={{
-                    textDecoration: 'none',
-                    padding: '8px 15px',
-                    backgroundColor: '#28a745',
-                    color: 'white',
-                    borderRadius: '5px',
-                    marginBottom: '20px',
-                    display: 'inline-block'
-                }}>
-                    + Add New Store
-                </Link>)}
-            {stores.length === 0 ? (<p>No stores found.</p>) : (<ul style={{listStyleType: 'none', padding: 0}}>
-                    {stores.map(store => (<li key={store.id} style={{
-                            border: '1px solid #ddd', padding: '10px', marginBottom: '10px', borderRadius: '5px'
-                        }}>
-                            <h3>{store.name}</h3>
-                            <p>Address: {store.address}</p>
-                            <p>Contact: {store.contact_person_name} ({store.contact_person_phone})</p>
-                            <p>Coordinates: {store.latitude}, {store.longitude}</p>
-                            <div style={{marginTop: '10px'}}>
-                                <Link to={`/stores/${store.id}`}
-                                      style={{textDecoration: 'none', color: '#007bff', marginRight: '10px'}}>View
-                                    Details</Link>
-                                {currentUserRole === 'manager' && (<>
-                                        <Link to={`/stores/${store.id}/edit`} style={{
-                                            textDecoration: 'none', color: '#ffc107', marginRight: '10px'
-                                        }}>Edit</Link>
-                                        <button onClick={() => handleDeleteStore(store.id)} style={{
-                                            padding: '5px 10px',
-                                            backgroundColor: '#dc3545',
-                                            color: 'white',
-                                            border: 'none',
-                                            borderRadius: '3px',
-                                            cursor: 'pointer'
-                                        }}>Delete
-                                        </button>
-                                    </>)}
-                            </div>
-                        </li>))}
-                </ul>)}
-        </div>);
+        <h2>Our Stores</h2>
+        {currentUserRole === 'manager' && (<Link to="/stores/create" style={{
+            textDecoration: 'none',
+            padding: '8px 15px',
+            backgroundColor: '#28a745',
+            color: 'white',
+            borderRadius: '5px',
+            marginBottom: '20px',
+            display: 'inline-block'
+        }}>
+            + Add New Store
+        </Link>)}
+        {stores.length === 0 ? (<p>No stores found.</p>) : (<ul style={{listStyleType: 'none', padding: 0}}>
+            {stores.map(store => (<li key={store.id} style={{
+                border: '1px solid #ddd', padding: '10px', marginBottom: '10px', borderRadius: '5px'
+            }}>
+                <h3>{store.name}</h3>
+                <p>Address: {store.address}</p>
+                <p>Contact: {store.contact_person_name} ({store.contact_person_phone})</p>
+                <p>Coordinates: {store.latitude}, {store.longitude}</p>
+                <div style={{marginTop: '10px'}}>
+                    <Link to={`/stores/${store.id}`}
+                          style={{textDecoration: 'none', color: '#007bff', marginRight: '10px'}}>View
+                        Details</Link>
+                    {currentUserRole === 'manager' && (<>
+                        <Link to={`/stores/${store.id}/edit`} style={{
+                            textDecoration: 'none', color: '#ffc107', marginRight: '10px'
+                        }}>Edit</Link>
+                        <button onClick={() => handleDeleteStore(store.id)} style={{
+                            padding: '5px 10px',
+                            backgroundColor: '#dc3545',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '3px',
+                            cursor: 'pointer'
+                        }}>Delete
+                        </button>
+                    </>)}
+                </div>
+            </li>))}
+        </ul>)}
+    </div>);
 };
 
 export default StoreList;

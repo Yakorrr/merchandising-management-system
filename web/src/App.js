@@ -16,6 +16,11 @@ import UserManagementCreate from './pages/user/UserManagementCreate';
 import UserManagementEdit from './pages/user/UserManagementEdit';
 import UserManagementDetail from './pages/user/UserManagementDetail';
 
+import ProductList from './pages/product/ProductList';
+import ProductCreate from './pages/product/ProductCreate';
+import ProductEdit from './pages/product/ProductEdit';
+import ProductDetail from './pages/product/ProductDetail';
+
 import {useAuth} from './context/AuthContext';
 
 // PrivateRoute component
@@ -63,7 +68,8 @@ function App() {
                         <Link to="/dashboard" style={{marginRight: '15px'}}>Dashboard</Link>
                         {currentUserRole === 'manager' && (
                             <>
-                                <Link to="/users" style={{marginRight: '15px', color: 'purple'}}>Users</Link>
+                                <Link to="/users" style={{marginRight: '15px'}}>Users</Link>
+                                <Link to="/products" style={{marginRight: '15px'}}>Products</Link>
                             </>
                         )}
                         <Link to="/stores" style={{marginRight: '15px'}}>Stores</Link>
@@ -119,6 +125,7 @@ function App() {
                             <UserManagementEdit/>
                         </PrivateRoute>
                     }/>
+
                     {/* Routes for Store Management */}
                     <Route path="/stores" element={
                         <PrivateRoute>
@@ -139,6 +146,29 @@ function App() {
                     <Route path="/stores/:id/edit" element={
                         <PrivateRoute allowedRoles={['manager']}>
                             <StoreEdit/>
+                        </PrivateRoute>
+                    }/>
+
+                    {/* Routes for Product Management */}
+                    <Route path="/products" element={
+                        <PrivateRoute>
+                            <ProductList/>
+                        </PrivateRoute>
+                    }/>
+                    <Route path="/products/:id" element={
+                        <PrivateRoute>
+                            <ProductDetail/>
+                        </PrivateRoute>
+                    }/>
+                    {/* Manager-only routes for Product Management */}
+                    <Route path="/products/create" element={
+                        <PrivateRoute allowedRoles={['manager']}>
+                            <ProductCreate/>
+                        </PrivateRoute>
+                    }/>
+                    <Route path="/products/:id/edit" element={
+                        <PrivateRoute allowedRoles={['manager']}>
+                            <ProductEdit/>
                         </PrivateRoute>
                     }/>
 
