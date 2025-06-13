@@ -26,6 +26,9 @@ import OrderCreate from './pages/order/OrderCreate';
 import OrderEdit from './pages/order/OrderEdit';
 import OrderDetail from './pages/order/OrderDetail';
 
+import LogList from './pages/log/LogList';
+import LogDetail from './pages/log/LogDetail';
+
 import {useAuth} from './context/AuthContext';
 
 // PrivateRoute component
@@ -80,6 +83,9 @@ function App() {
                         <Link to="/stores" style={{marginRight: '15px'}}>Stores</Link>
                         <Link to="/orders" style={{marginRight: '15px'}}>Orders</Link>
                         <Link to="/map" style={{marginRight: '15px'}}>Map</Link>
+                        {currentUserRole === 'manager' && (
+                            <Link to="/logs" style={{marginRight: '15px'}}>Logs</Link>
+                        )}
                     </>
                 )}
 
@@ -203,6 +209,18 @@ function App() {
                     <Route path="/map" element={
                         <PrivateRoute>
                             <MapView/>
+                        </PrivateRoute>
+                    }/>
+
+                    {/* Manager-only routes for Log Management */}
+                    <Route path="/logs" element={
+                        <PrivateRoute allowedRoles={['manager']}>
+                            <LogList/>
+                        </PrivateRoute>
+                    }/>
+                    <Route path="/logs/:id" element={
+                        <PrivateRoute allowedRoles={['manager']}>
+                            <LogDetail/>
                         </PrivateRoute>
                     }/>
 
