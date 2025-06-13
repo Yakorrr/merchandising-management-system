@@ -21,6 +21,11 @@ import ProductCreate from './pages/product/ProductCreate';
 import ProductEdit from './pages/product/ProductEdit';
 import ProductDetail from './pages/product/ProductDetail';
 
+import OrderList from './pages/order/OrderList';
+import OrderCreate from './pages/order/OrderCreate';
+import OrderEdit from './pages/order/OrderEdit';
+import OrderDetail from './pages/order/OrderDetail';
+
 import {useAuth} from './context/AuthContext';
 
 // PrivateRoute component
@@ -73,6 +78,7 @@ function App() {
                             </>
                         )}
                         <Link to="/stores" style={{marginRight: '15px'}}>Stores</Link>
+                        <Link to="/orders" style={{marginRight: '15px'}}>Orders</Link>
                         <Link to="/map" style={{marginRight: '15px'}}>Map</Link>
                     </>
                 )}
@@ -172,11 +178,34 @@ function App() {
                         </PrivateRoute>
                     }/>
 
+                    {/* Routes for Order Management */}
+                    <Route path="/orders" element={
+                        <PrivateRoute>
+                            <OrderList/>
+                        </PrivateRoute>
+                    }/>
+                    <Route path="/orders/create" element={
+                        <PrivateRoute>
+                            <OrderCreate/>
+                        </PrivateRoute>
+                    }/>
+                    <Route path="/orders/:id" element={
+                        <PrivateRoute>
+                            <OrderDetail/>
+                        </PrivateRoute>
+                    }/>
+                    <Route path="/orders/:id/edit" element={
+                        <PrivateRoute>
+                            <OrderEdit/>
+                        </PrivateRoute>
+                    }/>
+
                     <Route path="/map" element={
                         <PrivateRoute>
                             <MapView/>
                         </PrivateRoute>
                     }/>
+
                     {/* Default route: wait until auth is ready before redirecting */}
                     <Route path="*" element={
                         !isAuthReady ? (
