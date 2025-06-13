@@ -1,21 +1,18 @@
 import React, {useState, useEffect} from 'react';
 
 const StoreForm = ({initialData = {}, onSubmit, isEditMode = false, submitButtonText}) => {
-    const [formData, setFormData] = useState({
-        name: '',
-        address: '',
-        latitude: '',
-        longitude: '',
-        contact_person_name: '',
-        contact_person_phone: '',
-        ...initialData // Populate with initialData for edit mode
+    const [formData, setFormData] = useState(() => {
+        // For edit mode, populate with initialData.
+        // For create mode, it will be an empty object, so defaults are used.
+        return {
+            name: initialData.name || '',
+            address: initialData.address || '',
+            latitude: initialData.latitude || '',
+            longitude: initialData.longitude || '',
+            contact_person_name: initialData.contact_person_name || '',
+            contact_person_phone: initialData.contact_person_phone || '',
+        };
     });
-
-    // Update form data if initialData changes (important for edit mode when navigated via link)
-    useEffect(() => {
-        setFormData(prev => ({...prev, ...initialData}));
-    }, [initialData]);
-
 
     const handleChange = (e) => {
         const {name, value} = e.target;
@@ -24,7 +21,22 @@ const StoreForm = ({initialData = {}, onSubmit, isEditMode = false, submitButton
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        onSubmit(formData); // Pass current form data up to the parent component
+        // Prepare data to send, converting coordinates to numbers if they are strings
+        const dataToSend = {...formData};
+
+        if (dataToSend.latitude !== '' && dataToSend.latitude !== null) {
+            dataToSend.latitude = parseFloat(dataToSend.latitude);
+        } else {
+            dataToSend.latitude = null;
+        }
+
+        if (dataToSend.longitude !== '' && dataToSend.longitude !== null) {
+            dataToSend.longitude = parseFloat(dataToSend.longitude);
+        } else {
+            dataToSend.longitude = null;
+        }
+
+        onSubmit(dataToSend);
     };
 
     return (

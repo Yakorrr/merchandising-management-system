@@ -3,7 +3,7 @@ import {MapContainer, TileLayer, Marker, Popup, Polyline, useMap} from 'react-le
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import axios from 'axios';
-import {useAuth} from '../context/AuthContext';
+import {useAuth} from '../../context/AuthContext';
 import polyline from '@mapbox/polyline';
 
 delete L.Icon.Default.prototype._getIconUrl;

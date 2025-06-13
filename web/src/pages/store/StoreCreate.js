@@ -1,8 +1,8 @@
 import React, {useState} from 'react';
 import {useNavigate} from 'react-router-dom';
 import axios from 'axios';
-import {useAuth} from '../context/AuthContext';
-import StoreForm from '../components/StoreForm';
+import {useAuth} from '../../context/AuthContext';
+import StoreForm from '../../components/StoreForm';
 
 const StoreCreate = () => {
     const [message, setMessage] = useState('');
