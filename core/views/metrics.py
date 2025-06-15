@@ -1,6 +1,6 @@
-from django.db import models, transaction
-from django.db.models import DecimalField
-from django.db.models.functions import Coalesce
+from django.db import transaction
+from django.db.models import Subquery, OuterRef, DecimalField, Sum, Count, Avg
+from django.db.models.functions import Coalesce, Round
 from django.utils import timezone
 from rest_framework import status
 from rest_framework.generics import GenericAPIView
@@ -9,7 +9,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from core.models import Store, Log
+from core.models import Store, Log, Order, OrderItem
 from core.permissions import IsManager
 from core.serializers.metrics import *
 
@@ -22,6 +22,30 @@ class StoreMetricsListView(ListModelMixin, GenericAPIView):
     queryset = StoreMetrics.objects.all().order_by('-date', 'store__name')
     serializer_class = StoreMetricsSerializer
     permission_classes = [IsAuthenticated, IsManager]
+
+    def get_queryset(self):
+        """
+        Filters the queryset of pre-calculated store metrics based on query parameters.
+        Allows filtering by store_id and date.
+        :return: Filtered queryset of StoreMetrics objects.
+        """
+        queryset = super().get_queryset()
+
+        store_name = self.request.query_params.get('store')
+        date = self.request.query_params.get('date')
+
+        if store_name:
+            print(store_name)
+            queryset = queryset.filter(store__name__icontains=store_name)
+
+        if date:
+            try:
+                target_date = timezone.datetime.strptime(date, '%Y-%m-%d').date()
+                queryset = queryset.filter(date=target_date)
+            except ValueError:
+                return StoreMetrics.objects.none()
+
+        return queryset
 
     def get(self, request, *args, **kwargs):
         """
@@ -65,46 +89,86 @@ class CalculateStoreMetricsAPIView(APIView):
         :param request: The HTTP request object.
         :return: Response containing calculated metrics for stores.
         """
-        start_date = request.data.get('start_date')
-        end_date = request.data.get('end_date')
+        start_date = request.query_params.get('start_date')
+        end_date = request.query_params.get('end_date')
 
         queryset = Store.objects.all()
 
-        order_filters = {}
-        if start_date:
+        if start_date and start_date != '':
             try:
-                start_date = timezone.datetime.strptime(start_date, '%Y-%m-%d').date()
+                start_datetime = timezone.make_aware(
+                    timezone.datetime.strptime(start_date, '%Y-%m-%d')
+                    .replace(
+                        hour=0, minute=0, second=0, microsecond=0
+                    ))
             except ValueError:
                 return Response({"detail": "Invalid start_date format. Use YYYY-MM-DD."},
                                 status=status.HTTP_400_BAD_REQUEST)
         else:
-            start_date = timezone.datetime(2020, 1, 1).date()
+            start_datetime = timezone.make_aware(
+                timezone.datetime(2025, 6, 1, 0, 0, 0, 0)
+            )
 
-        if end_date:
+        if end_date and end_date != '':
             try:
-                end_date = timezone.datetime.strptime(end_date, '%Y-%m-%d').date()
+                end_datetime = timezone.make_aware(
+                    timezone.datetime.strptime(end_date, '%Y-%m-%d')
+                    .replace(
+                        hour=23, minute=59, second=59, microsecond=999999
+                    ))
             except ValueError:
                 return Response({"detail": "Invalid end_date format. Use YYYY-MM-DD."},
                                 status=status.HTTP_400_BAD_REQUEST)
         else:
-            end_date = timezone.now().date()
+            end_datetime = timezone.now()
 
-        order_filters['orders__order_date__gte'] = start_date
-        order_filters['orders__order_date__lte'] = end_date
+        orders_in_range = Order.objects.filter(
+            store=OuterRef("pk"), order_date__range=(start_datetime, end_datetime)
+        )
 
+        # Annotate the Store queryset with the required metrics using Subqueries
         metrics_data = queryset.annotate(
-            total_orders_count=models.Count('orders', distinct=True, filter=models.Q(**order_filters)),
-            total_quantity_ordered=Coalesce(models.Sum('orders__items__quantity',
-                                                       filter=models.Q(**order_filters)), 0),
-            total_order_amount=Coalesce(
-                models.Sum('orders__total_amount', filter=models.Q(**order_filters)), 0.00,
-                output_field=DecimalField()
-            )
-        ).annotate(
-            average_order_amount=Coalesce(models.Avg('orders__total_amount',
-                                                     filter=models.Q(**order_filters)), 0.00,
-                                          output_field=DecimalField())
-        ).values('id', 'name', 'total_orders_count', 'total_quantity_ordered', 'average_order_amount')
+            # Metric 1: Total number of orders for the store
+            total_orders_count=Coalesce(
+                Subquery(
+                    orders_in_range.values("store")
+                    .annotate(count=Count("pk"))
+                    .values("count")
+                ),
+                0,
+            ),
+
+            # Metric 2: Total quantity of all items sold in the store's orders
+            total_quantity_ordered=Coalesce(
+                Subquery(
+                    OrderItem.objects.filter(
+                        order__store=OuterRef("pk"),
+                        order__order_date__range=(start_datetime, end_datetime),
+                    )
+                    .values("order__store")
+                    .annotate(total=Sum("quantity"))
+                    .values("total")
+                ),
+                0,
+            ),
+
+            # Metric 3: Average order amount for the store
+            average_order_amount=Coalesce(
+                Subquery(
+                    orders_in_range.values("store")
+                    .annotate(avg=Round(Avg("total_amount"), 2))
+                    .values("avg")
+                ),
+                0.0,
+                output_field=DecimalField(),
+            ),
+        ).values(
+            'id',
+            'name',
+            'total_orders_count',
+            'total_quantity_ordered',
+            'average_order_amount'
+        ).order_by('name')
 
         results = []
         for item in metrics_data:
@@ -114,8 +178,8 @@ class CalculateStoreMetricsAPIView(APIView):
                 'total_orders_count': item['total_orders_count'],
                 'total_quantity_ordered': item['total_quantity_ordered'],
                 'average_order_amount': item['average_order_amount'],
-                'start_date': start_date,
-                'end_date': end_date,
+                'start_date': start_datetime.isoformat(),
+                'end_date': end_datetime.isoformat(),
             })
 
         serializer = CalculatedStoreMetricsSerializer(results, many=True)
@@ -138,43 +202,70 @@ class SaveStoreMetricsAPIView(APIView):
         :param request: The HTTP request object.
         :return: Response indicating success and number of metrics saved.
         """
-        date = request.data.get('date')
+        target_date = request.data.get('target_date')
 
         queryset = Store.objects.all()
 
-        if date:
+        if target_date and target_date != '':
             try:
-                target_date = timezone.datetime.strptime(date, '%Y-%m-%d').date()
+                target_datetime = timezone.make_aware(
+                    timezone.datetime.strptime(target_date, '%Y-%m-%d')
+                    .replace(
+                        hour=23, minute=59, second=59, microsecond=999999
+                    ))
             except ValueError:
-                return Response({"detail": "Invalid date format. Use YYYY-MM-DD."},
+                return Response({"detail": "Invalid end_date format. Use YYYY-MM-DD."},
                                 status=status.HTTP_400_BAD_REQUEST)
         else:
-            target_date = timezone.now().date()
+            target_datetime = timezone.now()
 
-        order_filters = {
-            'orders__order_date__date': target_date
-        }
+        order_filters = Order.objects.filter(
+            store=OuterRef("pk"), order_date=target_datetime
+        )
 
         metrics_data = queryset.annotate(
-            total_orders_count=models.Count('orders', distinct=True, filter=models.Q(**order_filters)),
-            total_quantity_ordered=Coalesce(models.Sum('orders__items__quantity',
-                                                       filter=models.Q(**order_filters)), 0),
-            total_order_amount=Coalesce(
-                models.Sum('orders__total_amount', filter=models.Q(**order_filters)), 0.00,
-                output_field=DecimalField()
-            )
-        ).annotate(
-            average_order_amount=Coalesce(models.Avg('orders__total_amount',
-                                                     filter=models.Q(**order_filters)), 0.00,
-                                          output_field=DecimalField())
-        )
+            # Metric 1: Total number of orders for the store
+            total_orders_count=Coalesce(
+                Subquery(
+                    order_filters.values("store")
+                    .annotate(count=Count("pk"))
+                    .values("count")
+                ),
+                0,
+            ),
+
+            # Metric 2: Total quantity of all items sold in the store's orders
+            total_quantity_ordered=Coalesce(
+                Subquery(
+                    OrderItem.objects.filter(
+                        order__store=OuterRef("pk"),
+                        order__order_date=target_datetime,
+                    )
+                    .values("order__store")
+                    .annotate(total=Sum("quantity"))
+                    .values("total")
+                ),
+                0,
+            ),
+
+            # Metric 3: Average order amount for the store
+            average_order_amount=Coalesce(
+                Subquery(
+                    order_filters.values("store")
+                    .annotate(avg=Round(Avg("total_amount"), 2))
+                    .values("avg")
+                ),
+                0.0,
+                output_field=DecimalField(),
+            ),
+        ).order_by('name')
 
         saved_count = 0
         with transaction.atomic():
             for store_obj in metrics_data:
                 StoreMetrics.objects.update_or_create(
                     store=store_obj,
-                    date=target_date,
+                    date=timezone.datetime.strptime(target_date, '%Y-%m-%d').date(),
                     defaults={
                         'total_orders_count': store_obj.total_orders_count,
                         'total_quantity_ordered': store_obj.total_quantity_ordered,
@@ -195,4 +286,4 @@ class SaveStoreMetricsAPIView(APIView):
 
         return Response(
             {"detail": f"Successfully calculated and saved metrics for {saved_count} "
-                       f"stores for date {target_date}."}, status=status.HTTP_200_OK)
+                       f"stores for date range {target_date}."}, status=status.HTTP_200_OK)

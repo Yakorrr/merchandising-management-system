@@ -26,6 +26,9 @@ import OrderCreate from './pages/order/OrderCreate';
 import OrderEdit from './pages/order/OrderEdit';
 import OrderDetail from './pages/order/OrderDetail';
 
+import MetricsDashboard from './pages/metrics/MetricsDashboard';
+import MetricsDetail from './pages/metrics/MetricsDetail';
+
 import LogList from './pages/log/LogList';
 import LogDetail from './pages/log/LogDetail';
 
@@ -84,7 +87,10 @@ function App() {
                         <Link to="/orders" style={{marginRight: '15px'}}>Orders</Link>
                         <Link to="/map" style={{marginRight: '15px'}}>Map</Link>
                         {currentUserRole === 'manager' && (
-                            <Link to="/logs" style={{marginRight: '15px'}}>Logs</Link>
+                            <>
+                                <Link to="/metrics" style={{marginRight: '15px'}}>Metrics</Link>
+                                <Link to="/logs" style={{marginRight: '15px'}}>Logs</Link>
+                            </>
                         )}
                     </>
                 )}
@@ -211,6 +217,16 @@ function App() {
                             <MapView/>
                         </PrivateRoute>
                     }/>
+
+                    {/* Metrics Routes */}
+                    <Route path="/metrics" element={
+                        <PrivateRoute allowedRoles={['manager']}>
+                            <MetricsDashboard/>
+                        </PrivateRoute>}/>
+                    <Route path="/metrics/:id" element={
+                        <PrivateRoute allowedRoles={['manager']}>
+                            <MetricsDetail/>
+                        </PrivateRoute>}/>
 
                     {/* Manager-only routes for Log Management */}
                     <Route path="/logs" element={
