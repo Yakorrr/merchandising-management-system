@@ -175,6 +175,8 @@ cython_debug/
 # PyPI configuration file
 .pypirc
 
+migrations
+
 # ===== JS .gitignore ===== #
 
 # See http://help.github.com/ignore-files/ for more about ignoring files.

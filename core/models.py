@@ -193,8 +193,6 @@ class DailyPlanStore(models.Model):
         verbose_name_plural = "Daily Plan Stores"
         # Orders visits by their sequence in the plan.
         ordering = ['visit_order']
-        # Ensures that within a single daily plan, each visit order number is unique.
-        unique_together = (('daily_plan', 'visit_order'), ('daily_plan', 'store'))
 
     def __str__(self):
         """

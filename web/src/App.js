@@ -4,12 +4,7 @@ import Login from './auth/Login';
 import Register from './auth/Register';
 
 import Dashboard from './pages/Dashboard';
-import MapView from './pages/map/MapView';
 import Welcome from './pages/Welcome';
-import StoreList from './pages/store/StoreList';
-import StoreDetail from './pages/store/StoreDetail';
-import StoreCreate from './pages/store/StoreCreate';
-import StoreEdit from './pages/store/StoreEdit';
 
 import UserManagementList from './pages/user/UserManagementList';
 import UserManagementCreate from './pages/user/UserManagementCreate';
@@ -21,10 +16,22 @@ import ProductCreate from './pages/product/ProductCreate';
 import ProductEdit from './pages/product/ProductEdit';
 import ProductDetail from './pages/product/ProductDetail';
 
+import StoreList from './pages/store/StoreList';
+import StoreDetail from './pages/store/StoreDetail';
+import StoreCreate from './pages/store/StoreCreate';
+import StoreEdit from './pages/store/StoreEdit';
+
 import OrderList from './pages/order/OrderList';
 import OrderCreate from './pages/order/OrderCreate';
 import OrderEdit from './pages/order/OrderEdit';
 import OrderDetail from './pages/order/OrderDetail';
+
+import DailyPlanList from './pages/daily_plan/DailyPlanList';
+import DailyPlanCreate from './pages/daily_plan/DailyPlanCreate';
+import DailyPlanEdit from './pages/daily_plan/DailyPlanEdit';
+import DailyPlanDetail from './pages/daily_plan/DailyPlanDetail';
+
+import MapView from './pages/map/MapView';
 
 import MetricsDashboard from './pages/metrics/MetricsDashboard';
 import MetricsDetail from './pages/metrics/MetricsDetail';
@@ -80,11 +87,12 @@ function App() {
                         {currentUserRole === 'manager' && (
                             <>
                                 <Link to="/users" style={{marginRight: '15px'}}>Users</Link>
-                                <Link to="/products" style={{marginRight: '15px'}}>Products</Link>
                             </>
                         )}
                         <Link to="/stores" style={{marginRight: '15px'}}>Stores</Link>
+                        <Link to="/products" style={{marginRight: '15px'}}>Products</Link>
                         <Link to="/orders" style={{marginRight: '15px'}}>Orders</Link>
+                        <Link to="/daily_plans" style={{marginRight: '15px'}}>Daily Plans</Link>
                         <Link to="/map" style={{marginRight: '15px'}}>Map</Link>
                         {currentUserRole === 'manager' && (
                             <>
@@ -209,6 +217,28 @@ function App() {
                     <Route path="/orders/:id/edit" element={
                         <PrivateRoute>
                             <OrderEdit/>
+                        </PrivateRoute>
+                    }/>
+
+                    {/* Daily Plan Management Routes */}
+                    <Route path="/daily_plans" element={
+                        <PrivateRoute>
+                            <DailyPlanList/>
+                        </PrivateRoute>
+                    }/>
+                    <Route path="/daily_plans/create" element={
+                        <PrivateRoute allowedRoles={['manager']}>
+                            <DailyPlanCreate/>
+                        </PrivateRoute>
+                    }/>
+                    <Route path="/daily_plans/:id" element={
+                        <PrivateRoute>
+                            <DailyPlanDetail/>
+                        </PrivateRoute>
+                    }/>
+                    <Route path="/daily_plans/:id/edit" element={
+                        <PrivateRoute allowedRoles={['manager']}>
+                            <DailyPlanEdit/>
                         </PrivateRoute>
                     }/>
 

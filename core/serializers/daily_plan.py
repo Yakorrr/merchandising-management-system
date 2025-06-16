@@ -1,7 +1,9 @@
 from django.db import transaction
+from django.db.utils import IntegrityError
 from rest_framework import serializers
 
 from core.models import DailyPlan, DailyPlanStore, Store
+from core.serializers import StoreSerializer
 
 
 class DailyPlanStoreSerializer(serializers.ModelSerializer):
@@ -10,11 +12,12 @@ class DailyPlanStoreSerializer(serializers.ModelSerializer):
     Manages individual store visits within a daily plan.
     """
     store_name = serializers.CharField(source='store.name', read_only=True)
+    store_details = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = DailyPlanStore
-        fields = ['id', 'store', 'store_name', 'visit_order', 'visited_at', 'completed']
-        read_only_fields = ['id', 'store_name']
+        fields = ['id', 'store', 'store_name', 'store_details', 'visit_order', 'visited_at', 'completed']
+        read_only_fields = ['id', 'store_name', 'store_details']
 
     def validate_store(self, store_id):
         """
@@ -39,6 +42,16 @@ class DailyPlanStoreSerializer(serializers.ModelSerializer):
         if data.get('visit_order') is not None and data['visit_order'] <= 0:
             raise serializers.ValidationError({"visit_order": "Visit order must be a positive integer."})
         return data
+
+    def get_store_details(self, obj):
+        """
+        Returns the full serialized Store object for store_details field.
+        This will include latitude and longitude if they are in StoreSerializer's fields.
+        :param obj: The DailyPlanStore instance.
+        :return: Serialized Store data.
+        """
+
+        return StoreSerializer(obj.store).data
 
 
 class DailyPlanSerializer(serializers.ModelSerializer):
@@ -76,9 +89,19 @@ class DailyPlanCreateSerializer(serializers.ModelSerializer):
         """
         stores_data = validated_data.pop('stores')
         merchandiser_instance = validated_data.pop('merchandiser')
-        daily_plan = DailyPlan.objects.create(merchandiser=merchandiser_instance, **validated_data)
-        self._create_daily_plan_stores(daily_plan, stores_data)
-        return daily_plan
+
+        try:
+            with transaction.atomic():  # Ensure atomicity for DailyPlan creation and nested stores
+                daily_plan = DailyPlan.objects.create(merchandiser=merchandiser_instance, **validated_data)
+                self._create_daily_plan_stores(daily_plan, stores_data)
+            return daily_plan
+        except IntegrityError as e:
+            # Catch IntegrityError (unique constraint violation) and re-raise as ValidationError
+            if "daily_plan_id_visit_order" in str(e):
+                raise serializers.ValidationError({"stores": "Duplicate visit order found for this daily plan."})
+            if "daily_plan_id_store_id" in str(e):
+                raise serializers.ValidationError({"stores": "Duplicate store in daily plan."})
+            raise e  # Re-raise if not a known integrity error
 
     def _create_daily_plan_stores(self, daily_plan, stores_data):
         """
@@ -86,6 +109,18 @@ class DailyPlanCreateSerializer(serializers.ModelSerializer):
         :param daily_plan: The DailyPlan instance to associate visits with.
         :param stores_data: List of dictionaries containing store visit data.
         """
+
+        # Validate uniqueness of visit_order and store in data BEFORE creation loop
+        visit_orders_in_data = [item.get('visit_order') for item in stores_data if item.get('visit_order') is not None]
+        store_ids_in_data = [item.get('store').id if isinstance(item.get('store'), Store) else item.get('store') for
+                             item in stores_data if item.get('store') is not None]
+
+        if len(store_ids_in_data) != len(set(store_ids_in_data)):
+            raise serializers.ValidationError({"stores": "Duplicate store found in the provided list for this plan."})
+        if len(visit_orders_in_data) != len(set(visit_orders_in_data)):
+            raise serializers.ValidationError(
+                {"stores": "Duplicate visit order found in the provided list for this plan."})
+
         for store_data in stores_data:
             store = store_data.pop('store')
             DailyPlanStore.objects.create(daily_plan=daily_plan, store=store, **store_data)
@@ -117,61 +152,30 @@ class DailyPlanUpdateSerializer(serializers.ModelSerializer):
             setattr(instance, attr, value)
         instance.save()
 
+        # Completely replace DailyPlanStore objects by deleting old and creating new
         if stores_data is not None:
-            # FIX: Call the updated _update_daily_plan_stores method
-            self._update_daily_plan_stores(instance, stores_data)
+            # Validate uniqueness of visit_order and store in data BEFORE creation loop
+            visit_orders_in_data = []
+            store_ids_in_data = []
+            for item in stores_data:
+                if item.get('visit_order') is not None:
+                    visit_orders_in_data.append(item['visit_order'])
+                if item.get('store') is not None:
+                    store_ids_in_data.append(item['store'].id if isinstance(item['store'], Store) else item['store'])
+
+            if len(store_ids_in_data) != len(set(store_ids_in_data)):
+                raise serializers.ValidationError(
+                    {"stores": "Duplicate store found in the provided list for this plan."})
+            if len(visit_orders_in_data) != len(set(visit_orders_in_data)):
+                raise serializers.ValidationError(
+                    {"stores": "Duplicate visit order found in the provided list for this plan."})
+
+            with transaction.atomic():  # Ensure atomicity of delete and create
+                # 1. Delete all existing DailyPlanStore objects for this plan
+                instance.stores.all().delete()
+                # 2. Create new DailyPlanStore objects based on the provided data
+                for visit_data in stores_data:
+                    store_instance = visit_data.pop('store')  # This will be a Store instance
+                    DailyPlanStore.objects.create(daily_plan=instance, store=store_instance, **visit_data)
+
         return instance
-
-    def _update_daily_plan_stores(self, daily_plan, stores_data):
-        """
-        Helper method to update DailyPlanStore instances for a given DailyPlan.
-        This method handles creating new visits, updating existing ones, and deleting removed ones.
-        It also validates that visit_order is unique within the provided data.
-        :param daily_plan: The DailyPlan instance to update visits for.
-        :param stores_data: List of dictionaries containing new and updated store visit data.
-        :raises serializers.ValidationError: If visit_order is not unique in the input data.
-        """
-        # Validate uniqueness of visit_order within the incoming data itself
-        visit_orders_in_data = [item.get('visit_order') for item in stores_data if item.get('visit_order') is not None]
-        if len(visit_orders_in_data) != len(set(visit_orders_in_data)):
-            raise serializers.ValidationError({"stores": "Duplicate visit_order found in the provided list of stores."})
-
-        # Use a transaction for atomicity
-        with transaction.atomic():
-            # Get existing DailyPlanStore IDs for this DailyPlan
-            existing_daily_plan_store_ids = set(daily_plan.stores.values_list('id', flat=True))
-
-            # Keep track of IDs provided in the request
-            requested_daily_plan_store_ids = set()
-
-            for visit_data in stores_data:
-                visit_id = visit_data.get('id')
-                store = visit_data.pop('store')  # This will be a Store instance from validation
-
-                if visit_id:
-                    # Case 1: ID provided, try to update existing DailyPlanStore
-                    try:
-                        visit_instance = DailyPlanStore.objects.get(id=visit_id, daily_plan=daily_plan)
-                        # Perform update
-                        for attr, value in visit_data.items():
-                            setattr(visit_instance, attr, value)
-                        visit_instance.store = store  # Update store in case it changed (less common but possible)
-                        visit_instance.save()
-                        requested_daily_plan_store_ids.add(visit_id)
-                    except DailyPlanStore.DoesNotExist:
-                        # Case 1.1: ID provided but object not found for this plan
-                        raise serializers.ValidationError({
-                            "stores": f"DailyPlanStore with ID {visit_id} not found for this plan. Cannot update non-existent item."})
-                else:
-                    # Case 2: No ID provided, create a new DailyPlanStore
-                    if DailyPlanStore.objects.filter(daily_plan=daily_plan,
-                                                     visit_order=visit_data.get('visit_order')).exists():
-                        raise serializers.ValidationError({
-                            "stores": f"Visit order {visit_data.get('visit_order')} already exists for this plan. Cannot create duplicate."})
-
-                    new_visit = DailyPlanStore.objects.create(daily_plan=daily_plan, store=store, **visit_data)
-                    requested_daily_plan_store_ids.add(new_visit.id)
-
-            # Case 3: Delete DailyPlanStore objects that were not in the request list
-            daily_plan.stores.filter(id__in=existing_daily_plan_store_ids).exclude(
-                id__in=requested_daily_plan_store_ids).delete()
