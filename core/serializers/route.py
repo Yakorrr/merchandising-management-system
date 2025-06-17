@@ -67,6 +67,7 @@ class RouteResponseSegmentSerializer(serializers.Serializer):
     """
     store_id = serializers.IntegerField()
     store_name = serializers.CharField()
+    store_address = serializers.CharField()
     latitude = serializers.DecimalField(max_digits=9, decimal_places=6)
     longitude = serializers.DecimalField(max_digits=9, decimal_places=6)
     distance_to_next_km = serializers.DecimalField(max_digits=10, decimal_places=2,

@@ -34,7 +34,7 @@ class CalculateRouteAPIView(APIView):
         for store_obj in points_data:
             coords.append(f"{store_obj.longitude},{store_obj.latitude}")
 
-            # This check is also handled by RouteRequestSerializer.validate_points() (at least two points)
+        # This check is also handled by RouteRequestSerializer.validate_points() (at least two points)
         if len(coords) < 2:
             return Response({"detail": "At least two valid store coordinates are required for routing."},
                             status=status.HTTP_400_BAD_REQUEST)
@@ -83,6 +83,7 @@ class CalculateRouteAPIView(APIView):
                         ordered_points_output.append({
                             'store_id': original_store_obj.id,
                             'store_name': original_store_obj.name,
+                            'store_address': original_store_obj.address,
                             'latitude': original_store_obj.latitude,
                             'longitude': original_store_obj.longitude,
                         })
@@ -92,6 +93,7 @@ class CalculateRouteAPIView(APIView):
                     ordered_points_output.append({
                         'store_id': store_obj.id,
                         'store_name': store_obj.name,
+                        'store_address': store_obj.address,
                         'latitude': store_obj.latitude,
                         'longitude': store_obj.longitude,
                     })

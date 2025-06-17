@@ -54,6 +54,15 @@ const OrderDetail = () => {
         return <div>Order not found.</div>;
     }
 
+    const tableHeaderStyle = {padding: '10px', borderBottom: '1px solid #ddd'};
+    const tableCellStyle = {
+        padding: '10px',
+        borderBottom: '1px solid #eee',
+        textAlign: 'center',
+        fontSize: '0.9em',
+        verticalAlign: 'center'
+    };
+
     return (
         <div>
             <h2>Order #{order.id} Details</h2>
@@ -67,14 +76,26 @@ const OrderDetail = () => {
             {order.items.length === 0 ? (
                 <p>No items in this order.</p>
             ) : (
-                <ul style={{listStyleType: 'disc', paddingLeft: '20px'}}>
+                <table style={{width: '100%', borderCollapse: 'collapse', border: '1px solid #ddd'}}>
+                    <thead>
+                    <tr style={{backgroundColor: '#f2f2f2'}}>
+                        <th style={tableHeaderStyle}>Product Name</th>
+                        <th style={tableHeaderStyle}>Quantity</th>
+                        <th style={tableHeaderStyle}>Price Per Unit</th>
+                        <th style={tableHeaderStyle}>Line Total</th>
+                    </tr>
+                    </thead>
+                    <tbody>
                     {order.items.map(item => (
-                        <li key={item.id}>
-                            {item.product_name}: {item.quantity} pcs * ${item.price_per_unit} =
-                            ${item.quantity * item.price_per_unit}
-                        </li>
+                        <tr key={item.id}>
+                            <td style={tableCellStyle}>{item.product_name}</td>
+                            <td style={tableCellStyle}>{item.quantity} pcs</td>
+                            <td style={tableCellStyle}>${parseFloat(item.price_per_unit).toFixed(2)}</td>
+                            <td style={tableCellStyle}>${(item.quantity * parseFloat(item.price_per_unit)).toFixed(2)}</td>
+                        </tr>
                     ))}
-                </ul>
+                    </tbody>
+                </table>
             )}
 
             <p><strong>Created At:</strong> {new Date(order.created_at).toLocaleString()}</p>

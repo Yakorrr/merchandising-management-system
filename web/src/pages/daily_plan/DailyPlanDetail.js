@@ -46,6 +46,15 @@ const DailyPlanDetail = () => {
     if (error) return <div style={{color: 'red'}}>Error: {error}</div>;
     if (!plan) return <div>Daily Plan not found.</div>;
 
+    const tableHeaderStyle = {padding: '10px', borderBottom: '1px solid #ddd'};
+    const tableCellStyle = {
+        padding: '10px',
+        borderBottom: '1px solid #eee',
+        textAlign: 'center',
+        fontSize: '0.9em',
+        verticalAlign: 'center'
+    };
+
     return (
         <div>
             <h2>Daily Plan #{plan.id} Details</h2>
@@ -58,18 +67,36 @@ const DailyPlanDetail = () => {
             {plan.stores.length === 0 ? (
                 <p>No store visits in this plan.</p>
             ) : (
-                <ul style={{listStyleType: 'disc', paddingLeft: '20px'}}>
+                <table style={{width: '100%', borderCollapse: 'collapse', border: '1px solid #ddd'}}>
+                    <thead>
+                    <tr style={{backgroundColor: '#f2f2f2'}}>
+                        <th style={tableHeaderStyle}>Order</th>
+                        <th style={tableHeaderStyle}>Store Name</th>
+                        <th style={tableHeaderStyle}>Address</th>
+                        <th style={tableHeaderStyle}>Coordinates</th>
+                        <th style={tableHeaderStyle}>Status</th>
+                        <th style={tableHeaderStyle}>Visited At</th>
+                    </tr>
+                    </thead>
+                    <tbody>
                     {plan.stores.map(visit => (
-                        <li key={visit.id}>
-                            {visit.visit_order}. {visit.store_name + ' '}
-                            ({visit.store_details && visit.store_details.latitude && visit.store_details.longitude
-                            ? `Lat: ${visit.store_details.latitude}, Lon: ${visit.store_details.longitude}`
-                            : 'Coords N/A'})
-                            {visit.completed ? ' - COMPLETED' : ' - PENDING'}
-                            {visit.visited_at && ` at ${format(parseISO(visit.visited_at), 'dd MMM yyyy HH:mm')}`}
-                        </li>
+                        <tr key={visit.id}>
+                            <td style={tableCellStyle}>{visit.visit_order}</td>
+                            <td style={tableCellStyle}>{visit.store_name}</td>
+                            <td style={tableCellStyle}>{visit.store_details.address}</td>
+                            <td style={tableCellStyle}>
+                                {visit.store_details && visit.store_details.latitude && visit.store_details.longitude
+                                    ? `Lat: ${visit.store_details.latitude}, Lon: ${visit.store_details.longitude}`
+                                    : 'N/A'}
+                            </td>
+                            <td style={tableCellStyle}>{visit.completed ? 'COMPLETED' : 'PENDING'}</td>
+                            <td style={tableCellStyle}>
+                                {visit.visited_at ? format(parseISO(visit.visited_at), 'dd MMM yyyy HH:mm') : 'N/A'}
+                            </td>
+                        </tr>
                     ))}
-                </ul>
+                    </tbody>
+                </table>
             )}
 
             <p><strong>Created At:</strong> {new Date(plan.created_at).toLocaleString()}</p>

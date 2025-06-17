@@ -1,12 +1,9 @@
 from django.utils import timezone
-from rest_framework import status
 from rest_framework.generics import GenericAPIView
 from rest_framework.mixins import ListModelMixin
 from rest_framework.permissions import IsAuthenticated
-from rest_framework.response import Response
 
-from core.models import DailyPlanStore, DailyPlan
-from core.serializers.map import *
+from core.serializers import *
 
 
 class MapDataListView(ListModelMixin, GenericAPIView):
@@ -65,20 +62,19 @@ class MapDataListView(ListModelMixin, GenericAPIView):
 
 class DailyPlanStoresListView(ListModelMixin, GenericAPIView):
     """
-    API endpoint for listing stores associated with a specific daily plan.
+    API endpoint for listing stores associated with a specific daily plan, including visit order.
     Accessed via daily_plan_id from URL.
     Managers can view stores for any plan. Merchandisers can only view stores for their own plans.
     """
-    serializer_class = StoreMapSerializer
+    # Use DailyPlanStoreSerializer as serializer for this view
+    serializer_class = DailyPlanStoreSerializer
     permission_classes = [IsAuthenticated]
     lookup_field = 'daily_plan_id'
 
     def get_queryset(self):
         """
-        Retrieves the DailyPlan and then filters its associated stores.
-        Ensures proper permissions: managers can view any plan, merchandisers only their own.
-        :return: Queryset of Store objects for the specified DailyPlan.
-        :raises Http404: If the daily plan does not exist or user doesn't have permission.
+        Retrieves DailyPlanStore objects for the specified DailyPlan, ensuring correct permissions.
+        :return: Queryset of DailyPlanStore objects for the specified DailyPlan.
         """
         daily_plan_id = self.kwargs.get(self.lookup_field)
         request_user = self.request.user
@@ -89,19 +85,17 @@ class DailyPlanStoresListView(ListModelMixin, GenericAPIView):
             else:  # Merchandiser
                 daily_plan = DailyPlan.objects.get(id=daily_plan_id, merchandiser=request_user)
         except DailyPlan.DoesNotExist:
-            return Response({"detail": "Daily Plan not found or you do not have permission to access it."},
-                            status=status.HTTP_400_BAD_REQUEST)
+            return DailyPlanStore.objects.none()  # Return empty queryset if plan not found or no permission
 
-        return Store.objects.filter(
-            id__in=daily_plan.stores.filter(store__latitude__isnull=False, store__longitude__isnull=False)
-            .order_by('visit_order')
-            .values_list('store_id', flat=True)
-        )
+        # Filter DailyPlanStore objects, not Store objects
+        return daily_plan.stores.filter(
+            store__latitude__isnull=False, store__longitude__isnull=False  # Only include stores with coordinates
+        ).order_by('visit_order').prefetch_related('store')
 
     def get(self, request, *args, **kwargs):
         """
         Handles GET requests to list stores for a specific daily plan.
         :param request: The HTTP request object.
-        :return: Response containing a list of store objects.
+        :return: Response containing a list of DailyPlanStore objects.
         """
         return self.list(request, *args, **kwargs)
